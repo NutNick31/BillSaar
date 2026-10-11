@@ -1,0 +1,58 @@
+---
+import Base from '../layouts/Base.astro';
+import { bescom, bescomFppca } from '../lib/data';
+import { formatDate } from '../lib/format';
+import { CRUMB_HOME, ROUTES, SITE } from '../site';
+
+const title = `About ${SITE.name}`;
+const description = `Who builds ${SITE.name}, where the tariff data comes from, how it is verified, and how to report a mistake.`;
+const status = (v: boolean, on: string | null) => (v && on ? `verified on ${formatDate(on)}` : 'not yet verified');
+---
+
+<Base title={title} description={description} path={ROUTES.about} crumbs={[CRUMB_HOME, { name: 'About', path: ROUTES.about }]}>
+  <div class="prose">
+    <h1>About {SITE.name}</h1>
+    <p class="lead">
+      An independent, free tool that estimates Indian household electricity bills and explains every line. No ads, no signup, no
+      tracking cookies.
+    </p>
+
+    <h2>Who builds it</h2>
+    <p>
+      {SITE.name} is an independent side project. It is not affiliated with BESCOM, KERC, the Government of Karnataka or any
+      electricity company.
+    </p>
+
+    <h2 id="how-we-verify">How the data is verified</h2>
+    <ol>
+      <li>Every rate lives in one data file per electricity company, with the official order it comes from.</li>
+      <li>Each value is checked against the regulator's tariff order PDF.</li>
+      <li>The calculator is tested against real bills: its total must be within ₹1 of the printed amount.</li>
+      <li>Only then is the data marked verified, with the date. Until then, pages show a notice.</li>
+    </ol>
+    <p>Current status:</p>
+    <ul>
+      <li>{bescom.company} domestic tariff: {status(bescom.verified, bescom.lastVerifiedOn)}</li>
+      <li>{bescom.company} FPPCA values: {status(bescomFppca.verified, bescomFppca.lastVerifiedOn)}</li>
+    </ul>
+
+    <h2>Found a mistake?</h2>
+    {
+      SITE.contactEmail ? (
+        <p>
+          Email <a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a>. A photo of your bill (with your account ID hidden)
+          helps us check quickly.
+        </p>
+      ) : (
+        <p>A contact address will be added here soon.</p>
+      )
+    }
+
+    <h2>Disclaimer</h2>
+    <p>
+      This is an estimate based on the published tariff. Your actual bill may differ. Always check your official BESCOM bill. Not
+      affiliated with BESCOM or KERC.
+    </p>
+    <p><a href={ROUTES.bescomCalculator}>Go to the BESCOM bill calculator</a></p>
+  </div>
+</Base>

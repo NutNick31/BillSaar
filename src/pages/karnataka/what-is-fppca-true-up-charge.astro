@@ -1,0 +1,109 @@
+---
+import Base from '../../layouts/Base.astro';
+import SourceBox from '../../components/SourceBox.astro';
+import FAQ from '../../components/FAQ.astro';
+import RelatedLinks from '../../components/RelatedLinks.astro';
+import { bescom, bescomFppca, bescomVerified, fppcaMonths } from '../../lib/data';
+import { fppcaLatest } from '../../lib/examples';
+import { formatINR, formatMonth, formatNumber } from '../../lib/format';
+import { CRUMB_HOME, CRUMB_KARNATAKA, ROUTES } from '../../site';
+
+const t = bescom;
+const path = ROUTES.fppca;
+const title = `What Is FPPCA and the FY25 True-Up Charge on a BESCOM Bill?`;
+const description = `FPPCA is a monthly per-unit fuel cost adjustment (${formatNumber(fppcaLatest.paise)} paise in ${formatMonth(fppcaLatest.month)}). The FY25 true-up is a temporary charge on BESCOM bills until ${formatMonth(t.trueUp.activeTo)}. Monthly table and what they cost you.`;
+const months = fppcaMonths(bescomFppca).reverse();
+const taxOnFppca = t.electricityTax.appliesTo.includes('fppca');
+const cost = (paise: number, units: number) => (units * paise) / 100 * (taxOnFppca ? 1 + t.electricityTax.percent / 100 : 1);
+const values = months.map((m) => bescomFppca.months[m]!);
+const hi = Math.max(...values);
+const lo = Math.min(...values);
+
+const faqs = [
+  {
+    q: 'What does FPPCA mean on my BESCOM bill?',
+    a: 'Fuel and Power Purchase Cost Adjustment. When the cost of buying power differs from what the annual tariff assumed, the difference is passed on as a per-unit charge that changes month to month.',
+  },
+  {
+    q: `How much is FPPCA in ${formatMonth(fppcaLatest.month)}?`,
+    a: `${formatNumber(fppcaLatest.paise)} paise per unit. On a 200-unit bill that adds ${formatINR(cost(fppcaLatest.paise, 200))}.`,
+  },
+  {
+    q: `What is the "${t.trueUp.label}" line?`,
+    a: `A temporary charge that recovers costs from FY2024-25 that were not collected at the time. It appears on bills from ${formatMonth(t.trueUp.activeFrom)} to ${formatMonth(t.trueUp.activeTo)}. The amount depends on each household's FY2024-25 usage, so it is different for every home.`,
+  },
+  {
+    q: 'Can I avoid the true-up charge?',
+    a: 'No. It is part of the approved tariff for this period. The calculator lets you enter the exact amount from your bill so your estimate matches.',
+  },
+];
+---
+
+<Base title={title} description={description} path={path} crumbs={[CRUMB_HOME, CRUMB_KARNATAKA, { name: 'FPPCA & true-up', path }]} dataVerified={bescomVerified}>
+  <h1>What are FPPCA and the FY25 true-up charge?</h1>
+  <p class="lead">
+    Two lines on your BESCOM bill change from month to month or home to home. Here is what they are and what they cost.
+  </p>
+
+  <div class="card">
+    <p class="result-label">FPPCA in {formatMonth(fppcaLatest.month)}</p>
+    <p class="total">{formatNumber(fppcaLatest.paise)} paise<span class="visually-hidden"> per unit</span></p>
+    <p class="per-unit">
+      per unit · adds {formatINR(cost(fppcaLatest.paise, 100))} to a 100-unit bill and {formatINR(cost(fppcaLatest.paise, 200))} to a 200-unit bill
+    </p>
+  </div>
+
+  <div class="prose">
+    <h2>FPPCA: the monthly fuel cost adjustment</h2>
+    <p>
+      The yearly tariff assumes a price for the power the electricity company buys. Real costs move with coal prices, power exchange
+      rates and demand. FPPCA (Fuel and Power Purchase Cost Adjustment) passes that difference on to you as a per-unit charge.
+    </p>
+    <p>
+      It is charged on every unit you use, so it grows with your usage. In the months below it ranged from {formatNumber(lo)} to
+      {formatNumber(hi)} paise per unit.
+    </p>
+
+    <h2>BESCOM FPPCA by month</h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th scope="col">Month</th><th scope="col" class="num">Paise / unit</th><th scope="col" class="num">On 100 units</th><th scope="col" class="num">On 200 units</th></tr></thead>
+        <tbody>
+          {
+            months.map((m) => (
+              <tr class={m === fppcaLatest.month ? 'current' : undefined}>
+                <th scope="row">{formatMonth(m)}</th>
+                <td class="num">{formatNumber(bescomFppca.months[m]!)}</td>
+                <td class="num">{formatINR(cost(bescomFppca.months[m]!, 100))}</td>
+                <td class="num">{formatINR(cost(bescomFppca.months[m]!, 200))}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="hint">{taxOnFppca ? 'Amounts include electricity tax.' : 'Electricity tax is not charged on FPPCA in this tariff.'} The calculator lets you pick any month or type your own value.</p>
+
+    <h2>{t.trueUp.label}</h2>
+    <p>
+      A "true-up" settles the gap between the costs KERC expected for a past year and what they actually were. For FY2024-25 that
+      gap is being recovered through a temporary line on bills from <strong>{formatMonth(t.trueUp.activeFrom)}</strong> to
+      {' '}<strong>{formatMonth(t.trueUp.activeTo)}</strong>.
+    </p>
+    <p>
+      Because it depends on how much your household used in FY2024-25, there is no single rate to apply. Copy the amount from your
+      bill into the calculator's Advanced section and the estimate will match.
+    </p>
+    <p class="actions"><a class="btn" href={ROUTES.bescomCalculator}>Open the calculator</a></p>
+
+    <FAQ faqs={faqs} />
+    <SourceBox tariff={t} fppca={bescomFppca} />
+    <RelatedLinks
+      links={[
+        { href: ROUTES.howToRead, text: 'How to read your BESCOM bill' },
+        { href: ROUTES.bescomRate, text: 'BESCOM per unit rate' },
+        { href: ROUTES.bescomCalculator, text: 'BESCOM bill calculator' },
+      ]}
+    />
+  </div>
+</Base>

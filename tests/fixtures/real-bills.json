@@ -1,0 +1,16 @@
+{
+  "_comment": "TODO: add real bills. Copy 5–10 real BESCOM bills here (remove personal details: account ID, name, address). The site must not be marked verified until these pass.",
+  "bills": [
+    {
+      "_example": true,
+      "description": "TEMPLATE ONLY — replace with a real bill",
+      "billingMonth": "2026-06",
+      "units": 0,
+      "sanctionedLoadKw": 1,
+      "fppcaPaisePerUnit": 0,
+      "trueUpAmount": 0,
+      "gruhaJyothi": { "enrolled": false, "eligibleUnits": null },
+      "printedTotal": 0
+    }
+  ]
+}

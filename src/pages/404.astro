@@ -1,0 +1,15 @@
+---
+import Base from '../layouts/Base.astro';
+import { ROUTES } from '../site';
+---
+
+<Base title="Page not found" description="This page does not exist." path="/404/" crumbs={[{ name: 'Home', path: ROUTES.home }]} noindex>
+  <div class="prose">
+    <h1>Page not found</h1>
+    <p class="lead">The page you are looking for does not exist or has moved.</p>
+    <p class="actions">
+      <a class="btn" href={ROUTES.bescomCalculator}>BESCOM bill calculator</a>
+      <a class="btn secondary" href={ROUTES.home}>Home</a>
+    </p>
+  </div>
+</Base>

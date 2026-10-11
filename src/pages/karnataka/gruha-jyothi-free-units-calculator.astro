@@ -1,0 +1,142 @@
+---
+import Base from '../../layouts/Base.astro';
+import SourceBox from '../../components/SourceBox.astro';
+import FAQ from '../../components/FAQ.astro';
+import RelatedLinks from '../../components/RelatedLinks.astro';
+import { bescom, bescomFppca, bescomVerified } from '../../lib/data';
+import { checkMonth, eligibleFromBaseline } from '../../lib/gruha-jyothi';
+import { formatINR0, formatNumber } from '../../lib/format';
+import { webAppLd } from '../../lib/seo';
+import { CRUMB_HOME, CRUMB_KARNATAKA, ROUTES, SITE } from '../../site';
+
+const t = bescom;
+const gj = t.gruhaJyothi;
+const path = ROUTES.gruhaJyothi;
+const title = 'Gruha Jyothi Calculator: Your Free Units and This Month’s Bill';
+const description = `Work out your Gruha Jyothi eligible free units (average use + ${formatNumber(gj.bufferPercent)}%, up to ${gj.maxFreeUnits}) and check if this month’s usage is within the limit and what you will pay.`;
+const exampleBaseline = 100;
+const exampleEligible = eligibleFromBaseline(t, exampleBaseline);
+const exampleUnits = 130;
+const example = checkMonth(t, bescomFppca, exampleUnits, exampleEligible);
+const table = [25, 50, 75, 100, 125, 150, 175, 182, 200].map((b) => ({ baseline: b, eligible: eligibleFromBaseline(t, b) }));
+const capBaseline = Math.ceil(gj.maxFreeUnits / (1 + gj.bufferPercent / 100));
+const overExamples = [10, 25, 50].map((over) => ({ over, r: checkMonth(t, bescomFppca, exampleEligible + over, exampleEligible) }));
+const payload = JSON.stringify({ tariff: t, fppca: bescomFppca }).replace(/</g, '\\u003c');
+
+const faqs = [
+  {
+    q: 'How are Gruha Jyothi free units calculated?',
+    a: `${gj.baselineDescription}. For example, if your average was ${exampleBaseline} units, your limit is about ${exampleEligible} units a month.`,
+  },
+  {
+    q: `What happens if I use more than my eligible units?`,
+    a: `You pay for the units above your limit. For example, with a ${exampleEligible}-unit limit, using ${exampleEligible + 25} units costs about ${formatINR0(overExamples[1]!.r.withGj)}.`,
+  },
+  {
+    q: `What if I use more than ${gj.maxFreeUnits} units?`,
+    a: `Then Gruha Jyothi does not apply for that month and the full bill is payable, even if your usual limit is ${gj.maxFreeUnits}.`,
+  },
+  {
+    q: 'Where can I see my eligible units?',
+    a: 'Your BESCOM bill prints the eligible units under the Gruha Jyothi section. That figure is the one that counts; this page helps you estimate and plan.',
+  },
+];
+---
+
+<Base
+  title={title}
+  description={description}
+  path={path}
+  crumbs={[CRUMB_HOME, CRUMB_KARNATAKA, { name: 'Gruha Jyothi calculator', path }]}
+  jsonLd={[webAppLd(`Gruha Jyothi Calculator — ${SITE.name}`, description, path, Astro.site)]}
+  dataVerified={bescomVerified}
+>
+  <h1>Gruha Jyothi free units calculator</h1>
+  <p class="lead">
+    Find your free-unit limit, then check whether this month’s usage is inside it and what you will pay.
+  </p>
+
+  <section class="calculator" data-gj aria-label="Gruha Jyothi calculator">
+    <script type="application/json" data-gj-data set:html={payload} />
+    <form class="card" novalidate autocomplete="off">
+      <h2 class="step-title">1. Your eligible units</h2>
+      <div class="field">
+        <label for="gj-baseline">Average monthly units in FY2022-23</label>
+        <input id="gj-baseline" name="baseline" type="text" inputmode="decimal" value={exampleBaseline} aria-describedby="gj-baseline-hint" />
+        <p class="hint" id="gj-baseline-hint">Plus {formatNumber(gj.bufferPercent)}%, capped at {gj.maxFreeUnits} units.</p>
+      </div>
+      <p>Eligible free units: <strong data-out="eligible">{formatNumber(exampleEligible)} units</strong></p>
+
+      <h2 class="step-title">2. This month</h2>
+      <div class="row-2">
+        <div class="field">
+          <label for="gj-units">Units used</label>
+          <input id="gj-units" name="units" type="text" inputmode="decimal" value={exampleUnits} />
+        </div>
+        <div class="field">
+          <label for="gj-eligible">Eligible units</label>
+          <input id="gj-eligible" name="eligible" type="text" inputmode="decimal" value={exampleEligible} aria-describedby="gj-eligible-hint" />
+        </div>
+      </div>
+      <p class="hint" id="gj-eligible-hint">Use the number on your bill if you have it. Assumes 1 kW, latest FPPCA and no true-up.</p>
+    </form>
+    <div class="card result">
+      <p class="result-label">Result</p>
+      <p class="gj-status" aria-live="polite" data-out="status" data-status={example.status}>{example.message}</p>
+      <p class="actions"><a class="btn secondary" href={ROUTES.bescomCalculator + '?gj=1'}>Full bill breakdown</a></p>
+    </div>
+  </section>
+
+  <div class="prose">
+    <h2>How the scheme works</h2>
+    <ul>
+      <li><strong>Your limit:</strong> {gj.baselineDescription}.</li>
+      <li><strong>Within the limit:</strong> the covered charges are paid by the government, so the bill is ₹0 (any {t.trueUp.label} may still apply).</li>
+      <li><strong>Over the limit:</strong> you pay only for the units above it.</li>
+      <li><strong>Over {gj.maxFreeUnits} units in a month:</strong> the scheme does not apply and the full bill is payable.</li>
+    </ul>
+
+    <h2>Average use to eligible units</h2>
+    <p>Anyone who averaged {capBaseline} units or more gets the full {gj.maxFreeUnits}-unit limit.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th scope="col">Average monthly units (FY2022-23)</th><th scope="col" class="num">Eligible free units</th></tr></thead>
+        <tbody>{table.map((r) => <tr><th scope="row">{r.baseline}</th><td class="num">{r.eligible}</td></tr>)}</tbody>
+      </table>
+    </div>
+
+    <h2>What going over costs</h2>
+    <p>With a {exampleEligible}-unit limit, on 1 kW:</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th scope="col">Units used</th><th scope="col" class="num">You pay</th><th scope="col" class="num">Without the scheme</th></tr></thead>
+        <tbody>
+          {
+            overExamples.map(({ over, r }) => (
+              <tr>
+                <th scope="row">{exampleEligible + over} ({over} over)</th>
+                <td class="num">{formatINR0(r.withGj)}</td>
+                <td class="num">{formatINR0(r.withoutGj)}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <FAQ faqs={faqs} />
+    <SourceBox tariff={t} fppca={bescomFppca} />
+    <RelatedLinks
+      links={[
+        { href: ROUTES.bescomCalculator, text: 'BESCOM bill calculator' },
+        { href: ROUTES.bescomUnits(200), text: 'BESCOM bill for 200 units' },
+        { href: ROUTES.howToRead, text: 'How to read your BESCOM bill' },
+      ]}
+    />
+  </div>
+</Base>
+
+<script>
+  import { initGruhaJyothi } from '../../components/gruha-jyothi-tool';
+  document.querySelectorAll<HTMLElement>('[data-gj]').forEach(initGruhaJyothi);
+</script>

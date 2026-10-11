@@ -1,0 +1,106 @@
+---
+import Base from '../../layouts/Base.astro';
+import Calculator from '../../components/Calculator.astro';
+import SourceBox from '../../components/SourceBox.astro';
+import FAQ from '../../components/FAQ.astro';
+import RelatedLinks from '../../components/RelatedLinks.astro';
+import { bescom, bescomFppca, bescomVerified } from '../../lib/data';
+import { bescomBill, bescomPerUnit, fppcaLatest } from '../../lib/examples';
+import { formatFY, formatINR, formatINR0, formatMonth, formatNumber } from '../../lib/format';
+import { webAppLd } from '../../lib/seo';
+import { CRUMB_HOME, CRUMB_KARNATAKA, ROUTES, SITE } from '../../site';
+
+const t = bescom;
+const fy = formatFY(t.financialYear);
+const path = ROUTES.bescomCalculator;
+const title = `BESCOM Bill Calculator ${fy}: Line-by-Line Estimate`;
+const description = `Calculate your BESCOM electricity bill for ${fy}: ${formatINR(t.energyCharge.ratePerUnit)}/unit, ${formatINR0(t.fixedCharge.perKwPerMonth)}/kW fixed charge, FPPCA, tax, true-up and Gruha Jyothi. Free, no signup.`;
+const taxBase = t.electricityTax.appliesTo.map((k) => ({ energy: 'energy', fixed: 'fixed', pgSurcharge: 'P&G surcharge', fppca: 'FPPCA', trueUp: 'true-up' })[k]).join(' and ');
+const sample = bescomBill(200);
+const examples = t.exampleUnits.map((u) => ({ units: u, bill: bescomBill(u) }));
+
+const faqs = [
+  {
+    q: `What is the BESCOM per unit rate in ${fy}?`,
+    a: `For homes, the energy charge is a flat ${formatINR(t.energyCharge.ratePerUnit)} per unit in ${fy}. On top of that come the pension & gratuity surcharge (${formatINR(t.pensionGratuitySurcharge.ratePerUnit)}/unit), FPPCA (${formatNumber(fppcaLatest.paise)} paise/unit in ${formatMonth(fppcaLatest.month)}) and ${formatNumber(t.electricityTax.percent)}% electricity tax on the ${taxBase} charges. All-in, each extra unit costs about ${formatINR(bescomPerUnit)}.`,
+  },
+  {
+    q: 'Does BESCOM still have slabs?',
+    a: `No. In ${fy} the domestic energy charge is a single flat rate, so your 1st unit and your 300th unit cost the same. Calculators that still show slabs are using old tariffs.`,
+  },
+  {
+    q: `How much is the BESCOM bill for 200 units?`,
+    a: `At 200 units on a 1 kW connection, the estimate is ${formatINR0(sample.payable)} (using ${formatMonth(fppcaLatest.month)} FPPCA and no true-up). With Gruha Jyothi, it is ₹0 if 200 units is within your eligible limit.`,
+  },
+  {
+    q: 'Why is my actual bill different from this estimate?',
+    a: `The usual reasons are: the ${t.trueUp.label} on your bill (enter it under Advanced), a different FPPCA month, a different sanctioned load, arrears or interest from earlier bills, or a billing period that is not exactly one month.`,
+  },
+  {
+    q: 'How does Gruha Jyothi change my bill?',
+    a: `If you are enrolled and use no more than your eligible units (up to ${t.gruhaJyothi.maxFreeUnits}), the covered charges are paid by the government. If you go over your limit, you pay for the extra units. Above ${t.gruhaJyothi.maxFreeUnits} units in a month, the full bill is payable.`,
+  },
+  {
+    q: 'Is this the official BESCOM calculator?',
+    a: 'No. This is an independent tool, not affiliated with BESCOM or KERC. It uses the published tariff and shows its sources so you can check every number.',
+  },
+];
+---
+
+<Base
+  title={title}
+  description={description}
+  path={path}
+  crumbs={[CRUMB_HOME, CRUMB_KARNATAKA, { name: 'BESCOM bill calculator', path }]}
+  jsonLd={[webAppLd(`BESCOM Bill Calculator — ${SITE.name}`, description, path, Astro.site)]}
+  dataVerified={bescomVerified}
+>
+  <h1>BESCOM Bill Calculator ({fy})</h1>
+  <p class="lead">Enter your units to see the total and every line of your bill, explained.</p>
+
+  <Calculator tariff={t} fppca={bescomFppca} />
+
+  <div class="prose">
+    <h2>How your BESCOM bill is calculated</h2>
+    <ol>
+      <li><strong>Fixed charge:</strong> {formatINR(t.fixedCharge.perKwPerMonth)} per kW of sanctioned load, every month.</li>
+      <li><strong>Energy charge:</strong> units × {formatINR(t.energyCharge.ratePerUnit)}. One flat rate, no slabs.</li>
+      <li><strong>FPPCA:</strong> units × the month's fuel and power purchase cost adjustment ({formatNumber(fppcaLatest.paise)} paise in {formatMonth(fppcaLatest.month)}). <a href={ROUTES.fppca}>What is FPPCA?</a></li>
+      <li><strong>Pension &amp; gratuity surcharge:</strong> units × {formatINR(t.pensionGratuitySurcharge.ratePerUnit)}.</li>
+      <li><strong>Electricity tax:</strong> {formatNumber(t.electricityTax.percent)}% of the {taxBase} charges.</li>
+      <li><strong>{t.trueUp.label}:</strong> a temporary charge on bills from {formatMonth(t.trueUp.activeFrom)} to {formatMonth(t.trueUp.activeTo)}, different for each home.</li>
+      <li><strong>Gruha Jyothi:</strong> if you are enrolled and within your limit, the covered charges are subtracted. <a href={ROUTES.gruhaJyothi}>Check your limit</a></li>
+    </ol>
+    <p>The total is rounded to the nearest rupee. Each line keeps its paise, just like the printed bill.</p>
+
+    <h2>BESCOM bill at common usage levels</h2>
+    <p>For a 1 kW home, {formatMonth(fppcaLatest.month)} FPPCA, no true-up and no Gruha Jyothi:</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th scope="col">Units</th><th scope="col" class="num">Estimated bill</th><th scope="col" class="num">Per unit, all-in</th></tr></thead>
+        <tbody>
+          {
+            examples.map(({ units, bill }) => (
+              <tr>
+                <th scope="row"><a href={ROUTES.bescomUnits(units)}>{units} units</a></th>
+                <td class="num">{formatINR0(bill.payable)}</td>
+                <td class="num">{formatINR(bill.payable / units)}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <FAQ faqs={faqs} />
+    <SourceBox tariff={t} fppca={bescomFppca} />
+    <RelatedLinks
+      links={[
+        { href: ROUTES.bescomRate, text: `BESCOM per unit rate ${fy}`, note: 'every charge in one table' },
+        { href: ROUTES.gruhaJyothi, text: 'Gruha Jyothi free units calculator' },
+        { href: ROUTES.howToRead, text: 'How to read your BESCOM bill' },
+        { href: ROUTES.fppca, text: 'What are FPPCA and the FY25 true-up charge?' },
+      ]}
+    />
+  </div>
+</Base>

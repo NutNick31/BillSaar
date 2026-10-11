@@ -1,0 +1,32 @@
+---
+import type { FppcaData, Tariff } from '../lib/types';
+import { formatDate, formatFY } from '../lib/format';
+
+interface Props {
+  tariff: Tariff;
+  fppca?: FppcaData;
+}
+const { tariff, fppca } = Astro.props;
+const isUrl = (s: string) => /^https?:\/\//.test(s);
+const verifiedText = (v: boolean, on: string | null) => (v && on ? `last verified ${formatDate(on)}` : 'not yet verified against the official document');
+---
+
+<aside class="source-box" aria-labelledby="sources-title">
+  <h2 id="sources-title">Sources</h2>
+  <ul>
+    {
+      tariff.sources.map((s) => (
+        <li>
+          {isUrl(s.url) ? <a href={s.url} rel="noopener">{s.title}</a> : s.title}
+          {s.note && <> — {s.note}</>}
+        </li>
+      ))
+    }
+    {fppca && <li>FPPCA: {isUrl(fppca.source) ? <a href={fppca.source} rel="noopener">official notification</a> : 'monthly FPPCA values (official notification being confirmed)'}</li>}
+  </ul>
+  <p>
+    {tariff.company} domestic tariff, {formatFY(tariff.financialYear)} (effective {formatDate(tariff.effectiveFrom)}):{' '}
+    {verifiedText(tariff.verified, tariff.lastVerifiedOn)}.{' '}
+    {fppca && <>FPPCA values: {verifiedText(fppca.verified, fppca.lastVerifiedOn)}.</>}
+  </p>
+</aside>

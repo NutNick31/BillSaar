@@ -1,0 +1,23 @@
+---
+import type { Faq } from '../lib/seo';
+import { faqLd } from '../lib/seo';
+
+interface Props {
+  faqs: Faq[];
+  title?: string;
+}
+const { faqs, title = 'Frequently asked questions' } = Astro.props;
+---
+
+<section class="faq" aria-labelledby="faq-title">
+  <h2 id="faq-title">{title}</h2>
+  {
+    faqs.map((f) => (
+      <details>
+        <summary>{f.q}</summary>
+        <p>{f.a}</p>
+      </details>
+    ))
+  }
+  <script type="application/ld+json" set:html={JSON.stringify(faqLd(faqs))} />
+</section>

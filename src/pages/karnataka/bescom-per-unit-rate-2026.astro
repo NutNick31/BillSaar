@@ -1,0 +1,145 @@
+---
+import Base from '../../layouts/Base.astro';
+import BillBreakdown from '../../components/BillBreakdown.astro';
+import SourceBox from '../../components/SourceBox.astro';
+import FAQ from '../../components/FAQ.astro';
+import RelatedLinks from '../../components/RelatedLinks.astro';
+import { bescom, bescomFppca, bescomVerified } from '../../lib/data';
+import { bescomBill, bescomPerUnit, fppcaLatest } from '../../lib/examples';
+import { formatDate, formatFY, formatINR, formatINR0, formatMonth, formatNumber } from '../../lib/format';
+import { CRUMB_HOME, CRUMB_KARNATAKA, ROUTES } from '../../site';
+
+const t = bescom;
+const fy = formatFY(t.financialYear);
+const path = ROUTES.bescomRate;
+const title = `BESCOM Per Unit Rate ${fy}: ${formatINR(t.energyCharge.ratePerUnit)} + Every Charge`;
+const description = `BESCOM domestic tariff ${fy}: energy ${formatINR(t.energyCharge.ratePerUnit)}/unit, fixed ${formatINR0(t.fixedCharge.perKwPerMonth)}/kW/month, P&G surcharge, FPPCA and ${formatNumber(t.electricityTax.percent)}% tax. All-in cost per unit and previous/next year rates.`;
+const names = { energy: 'energy', fixed: 'fixed', pgSurcharge: 'P&G surcharge', fppca: 'FPPCA', trueUp: 'true-up' } as const;
+const taxBase = t.electricityTax.appliesTo.map((k) => names[k]).join(' + ');
+
+const years = [
+  ...t.history.map((h) => ({ fy: h.financialYear, energy: h.energyRatePerUnit, fixed: h.fixedPerKw, current: false })),
+  { fy: t.financialYear, energy: t.energyCharge.ratePerUnit, fixed: t.fixedCharge.perKwPerMonth, current: true },
+].sort((a, b) => a.fy.localeCompare(b.fy));
+const prev = years[years.findIndex((y) => y.current) - 1];
+const next = years[years.findIndex((y) => y.current) + 1];
+
+const effective = [50, 100, 200, 300].map((u) => ({ units: u, k1: bescomBill(u), k2: bescomBill(u, { kw: 2 }) }));
+const example = bescomBill(150);
+
+const faqs = [
+  {
+    q: `What is the BESCOM electricity rate per unit in ${fy}?`,
+    a: `${formatINR(t.energyCharge.ratePerUnit)} per unit for domestic connections. Including the P&G surcharge, FPPCA (${formatMonth(fppcaLatest.month)}) and tax, one extra unit costs about ${formatINR(bescomPerUnit)}.`,
+  },
+  {
+    q: 'What is the BESCOM fixed charge per kW?',
+    a: `${formatINR(t.fixedCharge.perKwPerMonth)} per kW of sanctioned load per month in ${fy}. A 2 kW home pays ${formatINR(t.fixedCharge.perKwPerMonth * 2)} a month before tax, whether or not it uses electricity.`,
+  },
+  ...(next
+    ? [
+        {
+          q: `Will BESCOM rates change in ${formatFY(next.fy)}?`,
+          a: `The multi-year tariff order sets ${formatINR(next.energy)} per unit and ${formatINR(next.fixed)} per kW for ${formatFY(next.fy)}. KERC can still revise these, so check the latest order.`,
+        },
+      ]
+    : []),
+  {
+    q: 'Why is my all-in cost per unit higher than the energy rate?',
+    a: `Because the bill adds a fixed charge, FPPCA, the P&G surcharge and tax. The fixed charge matters most at low usage: at 50 units on 1 kW, the all-in cost is ${formatINR(effective[0]!.k1.payable / 50)} per unit; at 300 units it falls to ${formatINR(effective[3]!.k1.payable / 300)}.`,
+  },
+];
+---
+
+<Base
+  title={title}
+  description={description}
+  path={path}
+  crumbs={[CRUMB_HOME, CRUMB_KARNATAKA, { name: `BESCOM per unit rate ${fy}`, path }]}
+  dataVerified={bescomVerified}
+>
+  <h1>BESCOM per unit rate {fy}</h1>
+  <p class="lead">
+    Homes pay a flat <strong>{formatINR(t.energyCharge.ratePerUnit)} per unit</strong> from {formatDate(t.effectiveFrom)}, plus the charges below.
+    All-in, one extra unit costs about <strong>{formatINR(bescomPerUnit)}</strong>.
+  </p>
+
+  <div class="card table-scroll">
+    <table>
+      <caption class="visually-hidden">BESCOM domestic tariff {fy}</caption>
+      <thead><tr><th scope="col">Charge</th><th scope="col" class="num">Rate</th><th scope="col">Charged on</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Energy charge</th><td class="num">{formatINR(t.energyCharge.ratePerUnit)}/unit</td><td>Every unit used (flat, no slabs)</td></tr>
+        <tr><th scope="row">Fixed charge</th><td class="num">{formatINR(t.fixedCharge.perKwPerMonth)}/kW/month</td><td>Sanctioned load</td></tr>
+        <tr><th scope="row">Pension &amp; gratuity surcharge</th><td class="num">{formatINR(t.pensionGratuitySurcharge.ratePerUnit)}/unit</td><td>Every unit used</td></tr>
+        <tr><th scope="row"><a href={ROUTES.fppca}>FPPCA</a> ({formatMonth(fppcaLatest.month)})</th><td class="num">{formatNumber(fppcaLatest.paise)} paise/unit</td><td>Every unit used; changes monthly</td></tr>
+        <tr><th scope="row">Electricity tax</th><td class="num">{formatNumber(t.electricityTax.percent)}%</td><td>{taxBase} charges</td></tr>
+        <tr><th scope="row">{t.trueUp.label}</th><td class="num">Varies</td><td>Bills {formatMonth(t.trueUp.activeFrom)} – {formatMonth(t.trueUp.activeTo)}; set per home</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="actions"><a class="btn" href={ROUTES.bescomCalculator}>Calculate my bill</a></p>
+
+  <div class="prose">
+    <h2>All-in cost per unit at different usage</h2>
+    <p>The fixed charge is spread over fewer units when you use less, so small bills cost more per unit. {formatMonth(fppcaLatest.month)} FPPCA, no true-up:</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th scope="col">Units</th><th scope="col" class="num">1 kW bill</th><th scope="col" class="num">per unit</th><th scope="col" class="num">2 kW bill</th><th scope="col" class="num">per unit</th></tr></thead>
+        <tbody>
+          {
+            effective.map((e) => (
+              <tr>
+                <th scope="row"><a href={ROUTES.bescomUnits(e.units)}>{e.units}</a></th>
+                <td class="num">{formatINR0(e.k1.payable)}</td>
+                <td class="num">{formatINR(e.k1.payable / e.units)}</td>
+                <td class="num">{formatINR0(e.k2.payable)}</td>
+                <td class="num">{formatINR(e.k2.payable / e.units)}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Worked example: 150 units, 1 kW</h2>
+    <BillBreakdown result={example} caption="Bill for 150 units at 1 kW" />
+
+    <h2>Previous and next year</h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th scope="col">Financial year</th><th scope="col" class="num">Energy / unit</th><th scope="col" class="num">Fixed / kW / month</th></tr></thead>
+        <tbody>
+          {
+            years.map((y) => (
+              <tr class={y.current ? 'current' : undefined}>
+                <th scope="row">{formatFY(y.fy)}{y.current && ' (current)'}</th>
+                <td class="num">{formatINR(y.energy)}</td>
+                <td class="num">{formatINR(y.fixed)}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+    {
+      prev && (
+        <p>
+          Compared with {formatFY(prev.fy)}, the energy rate {prev.energy === t.energyCharge.ratePerUnit ? 'is unchanged' : `changed by ${formatINR(t.energyCharge.ratePerUnit - prev.energy)}`} and the
+          fixed charge went up by {formatINR(t.fixedCharge.perKwPerMonth - prev.fixed)} per kW.
+        </p>
+      )
+    }
+
+    <FAQ faqs={faqs} />
+    <SourceBox tariff={t} fppca={bescomFppca} />
+    <RelatedLinks
+      links={[
+        { href: ROUTES.bescomCalculator, text: 'BESCOM bill calculator' },
+        { href: ROUTES.bescomUnits(200), text: 'BESCOM bill for 200 units' },
+        { href: ROUTES.fppca, text: 'FPPCA and true-up charges explained' },
+        { href: ROUTES.howToRead, text: 'How to read your BESCOM bill' },
+      ]}
+    />
+  </div>
+</Base>

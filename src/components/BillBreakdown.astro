@@ -1,0 +1,12 @@
+---
+import type { BillResult } from '../lib/types';
+import { renderBreakdown } from '../lib/render';
+
+interface Props {
+  result: BillResult;
+  caption?: string;
+}
+const { result, caption } = Astro.props;
+---
+
+<div class="table-scroll" set:html={renderBreakdown(result, caption)} />

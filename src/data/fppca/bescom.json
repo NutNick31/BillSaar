@@ -1,0 +1,13 @@
+{
+  "unit": "paise_per_unit",
+  "verified": false,
+  "lastVerifiedOn": null,
+  "source": "TODO: official KERC/BESCOM FPPCA notification (secondary source currently: billunits.in)",
+  "months": {
+    "2026-01": 39,
+    "2026-02": 24,
+    "2026-03": 44,
+    "2026-04": 47,
+    "2026-05": 25
+  }
+}

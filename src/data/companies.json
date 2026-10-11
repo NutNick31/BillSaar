@@ -1,0 +1,17 @@
+{
+  "states": [
+    {
+      "name": "Karnataka",
+      "slug": "karnataka",
+      "regulator": "Karnataka Electricity Regulatory Commission (KERC)",
+      "companies": [
+        { "name": "BESCOM", "fullName": "Bangalore Electricity Supply Company", "slug": "bescom", "enabled": true, "area": "Bengaluru Urban, Bengaluru Rural, Ramanagara, Kolar, Chikkaballapura, Tumakuru, Chitradurga and Davanagere" },
+        { "name": "MESCOM", "fullName": "Mangalore Electricity Supply Company", "slug": "mescom", "enabled": false, "area": "Dakshina Kannada, Udupi, Shivamogga and Chikkamagaluru" },
+        { "name": "HESCOM", "fullName": "Hubli Electricity Supply Company", "slug": "hescom", "enabled": false, "area": "North-west Karnataka (Hubballi-Dharwad, Belagavi and nearby districts)" },
+        { "name": "GESCOM", "fullName": "Gulbarga Electricity Supply Company", "slug": "gescom", "enabled": false, "area": "North-east Karnataka (Kalaburagi, Ballari and nearby districts)" },
+        { "name": "CESC", "fullName": "Chamundeshwari Electricity Supply Corporation", "slug": "cesc", "enabled": false, "area": "Mysuru, Mandya, Hassan, Kodagu and Chamarajanagar" },
+        { "name": "HRECS", "fullName": "Hukeri Rural Electric Co-operative Society", "slug": "hrecs", "enabled": false, "area": "Hukkeri taluk, Belagavi district" }
+      ]
+    }
+  ]
+}

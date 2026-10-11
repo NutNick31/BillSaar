@@ -1,0 +1,50 @@
+{
+  "company": "BESCOM",
+  "companyFullName": "Bangalore Electricity Supply Company Limited",
+  "state": "Karnataka",
+  "stateSlug": "karnataka",
+  "slug": "bescom",
+  "category": "domestic",
+  "financialYear": "2026-27",
+  "effectiveFrom": "2026-04-01",
+  "effectiveTo": "2027-03-31",
+  "verified": false,
+  "lastVerifiedOn": null,
+  "sources": [
+    {
+      "title": "KERC Multi-Year Tariff Order (27 March 2025)",
+      "url": "TODO: link to the official KERC PDF",
+      "note": "Flat energy charge and fixed charges for FY2025-26 to FY2027-28"
+    }
+  ],
+  "energyCharge": { "type": "flat", "ratePerUnit": 5.80 },
+  "fixedCharge": { "perKwPerMonth": 150.00 },
+  "pensionGratuitySurcharge": { "ratePerUnit": 0.35 },
+  "electricityTax": {
+    "percent": 9,
+    "appliesTo": ["energy", "fixed"],
+    "note": "TODO verify exact tax base against the KERC order / a real bill"
+  },
+  "fppca": { "source": "fppca/bescom.json", "userOverridable": true },
+  "trueUp": {
+    "label": "FY25 True-Up Charges",
+    "activeFrom": "2026-05",
+    "activeTo": "2027-04",
+    "householdSpecific": true,
+    "note": "Amount depends on each household's FY2024-25 usage; the user enters it from their bill"
+  },
+  "gruhaJyothi": {
+    "enabled": true,
+    "maxFreeUnits": 200,
+    "bufferPercent": 10,
+    "baselineDescription": "Average monthly consumption in FY2022-23 plus 10%, capped at 200 units",
+    "overLimitRule": "pay_excess_units_only",
+    "coveredLines": ["energy", "fixed", "pgSurcharge", "fppca", "tax"],
+    "note": "TODO verify how charges are applied when usage exceeds the eligible limit, and whether fixed charges are covered"
+  },
+  "history": [
+    { "financialYear": "2025-26", "energyRatePerUnit": 5.80, "fixedPerKw": 145.00 },
+    { "financialYear": "2027-28", "energyRatePerUnit": 5.75, "fixedPerKw": 160.00 }
+  ],
+  "exampleUnits": [50, 75, 100, 120, 150, 175, 200, 250, 300, 350, 400, 500]
+}

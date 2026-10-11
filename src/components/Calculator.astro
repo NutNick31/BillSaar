@@ -1,0 +1,134 @@
+---
+import type { FppcaData, Tariff } from '../lib/types';
+import { calculate } from '../lib/calculate';
+import { formatINR, formatINR0, formatMonth, formatNumber } from '../lib/format';
+import { renderBreakdown, renderWarnings } from '../lib/render';
+import { DEFAULT_STATE, stateToInput, type CalcState } from '../lib/url-state';
+
+interface Props {
+  tariff: Tariff;
+  fppca: FppcaData;
+  /** Server-rendered starting values (the no-JS worked example). */
+  initial?: Partial<CalcState>;
+  headingLevel?: 'h2' | 'h3';
+}
+
+const { tariff, fppca, initial = {} } = Astro.props;
+const state: CalcState = { ...DEFAULT_STATE, units: '150', ...initial };
+const result = calculate(tariff, stateToInput(state, fppca.months), fppca);
+const months = Object.keys(fppca.months).sort().reverse();
+const latest = months[0]!;
+const gj = tariff.gruhaJyothi;
+// Serialised for the browser island; "<" is escaped so the JSON cannot close the script tag.
+const payload = JSON.stringify({ tariff, fppca }).replace(/</g, '\\u003c');
+---
+
+<section class="calculator" data-calculator aria-label={`${tariff.company} bill calculator`}>
+  <script type="application/json" data-calc-data set:html={payload} />
+  <form class="card calc-form" novalidate autocomplete="off">
+    <fieldset class="segmented">
+      <legend>Enter your usage as</legend>
+      <div class="options">
+        <label><input type="radio" name="mode" value="units" checked={state.mode === 'units'} /> Units used</label>
+        <label><input type="radio" name="mode" value="meter" checked={state.mode === 'meter'} /> Meter readings</label>
+      </div>
+    </fieldset>
+
+    <div class="field" data-panel="units" hidden={state.mode !== 'units'}>
+      <label for="f-units">Units used this month (kWh)</label>
+      <input id="f-units" name="units" type="text" inputmode="decimal" value={state.units} aria-describedby="f-units-hint f-units-err" />
+      <p class="hint" id="f-units-hint">Printed as "Consumption" or "Units" on your bill.</p>
+      <p class="error" id="f-units-err" data-error="units" hidden></p>
+    </div>
+
+    <div data-panel="meter" hidden={state.mode !== 'meter'}>
+      <div class="row-2">
+        <div class="field">
+          <label for="f-prev">Previous reading</label>
+          <input id="f-prev" name="prev" type="text" inputmode="decimal" value={state.prev} aria-describedby="f-prev-err" />
+        </div>
+        <div class="field">
+          <label for="f-curr">Current reading</label>
+          <input id="f-curr" name="curr" type="text" inputmode="decimal" value={state.curr} aria-describedby="f-curr-err" />
+        </div>
+      </div>
+      <p class="error" id="f-prev-err" data-error="prev" hidden></p>
+      <p class="error" id="f-curr-err" data-error="curr" hidden></p>
+      <p class="hint">The previous reading is on your last bill. Read the current one off your meter.</p>
+    </div>
+
+    <details class="advanced">
+      <summary>Advanced: load, FPPCA, true-up, Gruha Jyothi</summary>
+
+      <div class="field">
+        <label for="f-kw">Sanctioned load (kW)</label>
+        <input id="f-kw" name="kw" type="text" inputmode="decimal" value={state.kw} aria-describedby="f-kw-hint f-kw-err" />
+        <p class="hint" id="f-kw-hint">On your bill as "Sanctioned load". Most flats are 1–3 kW.</p>
+        <p class="error" id="f-kw-err" data-error="kw" hidden></p>
+      </div>
+
+      <div class="field">
+        <label for="f-fm">FPPCA month</label>
+        <select id="f-fm" name="fm">
+          <option value="" selected={state.fm === ''}>Latest: {formatMonth(latest)} ({formatNumber(fppca.months[latest]!)} paise/unit)</option>
+          {months.map((m) => <option value={m} selected={state.fm === m}>{formatMonth(m)} ({formatNumber(fppca.months[m]!)} paise/unit)</option>)}
+          <option value="custom" selected={state.fm === 'custom'}>Enter my own value</option>
+        </select>
+      </div>
+      <div class="field" data-panel="fppca" hidden={state.fm !== 'custom'}>
+        <label for="f-fppca">FPPCA (paise per unit)</label>
+        <input id="f-fppca" name="fppca" type="text" inputmode="decimal" value={state.fppca} aria-describedby="f-fppca-err" />
+        <p class="error" id="f-fppca-err" data-error="fppca" hidden></p>
+      </div>
+
+      <div class="field">
+        <label for="f-tu">{tariff.trueUp.label} (₹)</label>
+        <input id="f-tu" name="tu" type="text" inputmode="decimal" value={state.tu} aria-describedby="f-tu-hint f-tu-err" />
+        <p class="hint" id="f-tu-hint">Different for every home. Copy it from your bill, or leave empty.</p>
+        <p class="error" id="f-tu-err" data-error="tu" hidden></p>
+      </div>
+
+      {
+        gj.enabled && (
+          <>
+            <label class="check">
+              <input type="checkbox" name="gj" value="1" checked={state.gj} />
+              <span>I am enrolled in Gruha Jyothi (free electricity scheme)</span>
+            </label>
+            <div class="field" data-panel="gj" hidden={!state.gj}>
+              <label for="f-gju">My eligible free units</label>
+              <input id="f-gju" name="gju" type="text" inputmode="decimal" value={state.gju} aria-describedby="f-gju-hint f-gju-err" />
+              <p class="hint" id="f-gju-hint">Printed on your bill. Up to {gj.maxFreeUnits} units.</p>
+              <p class="error" id="f-gju-err" data-error="gju" hidden></p>
+            </div>
+          </>
+        )
+      }
+    </details>
+  </form>
+
+  <div class="card result">
+    <div aria-live="polite" data-summary>
+      <p class="result-label">
+        Estimated bill{' '}
+        <span class="example-note" data-example-note>— example for {formatNumber(result.units)} units, {formatNumber(Number(state.kw))} kW</span>
+      </p>
+      <p class="total" data-total>{formatINR0(result.payable)}</p>
+      <p class="per-unit" data-per-unit>
+        {result.units > 0 ? `About ${formatINR(result.payable / result.units)} per unit, all charges included` : ''}
+      </p>
+      <ul class="warnings" data-warnings set:html={renderWarnings(result.warnings)} />
+    </div>
+    <noscript><p class="hint">Turn on JavaScript to calculate your own bill. Above is a worked example.</p></noscript>
+    <div class="table-scroll" data-breakdown set:html={renderBreakdown(result)} />
+    <div class="actions" data-share hidden>
+      <button class="btn" type="button" data-copy>Copy link</button>
+      <a class="btn secondary" data-whatsapp href="https://wa.me/" target="_blank" rel="noopener">Share on WhatsApp</a>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { initCalculator } from './calculator';
+  document.querySelectorAll<HTMLElement>('[data-calculator]').forEach(initCalculator);
+</script>

@@ -1,0 +1,60 @@
+---
+import Base from '../../layouts/Base.astro';
+import FAQ from '../../components/FAQ.astro';
+import RelatedLinks from '../../components/RelatedLinks.astro';
+import { bescom, bescomVerified, companies } from '../../lib/data';
+import { formatFY, formatINR } from '../../lib/format';
+import { CRUMB_HOME, CRUMB_KARNATAKA, ROUTES } from '../../site';
+
+const state = companies.states.find((s) => s.slug === 'karnataka')!;
+const fy = formatFY(bescom.financialYear);
+const title = `Electricity Bill Calculator Karnataka (${fy})`;
+const description = `Estimate your Karnataka electricity bill. BESCOM calculator live with the ${fy} tariff (${formatINR(bescom.energyCharge.ratePerUnit)}/unit), Gruha Jyothi and FPPCA. Other ESCOMs coming soon.`;
+const faqs = [
+  {
+    q: 'Which company supplies my electricity in Karnataka?',
+    a: `Karnataka has several electricity supply companies (ESCOMs), each covering different districts. Your bill shows the company name. ${state.companies.map((c) => `${c.name}: ${c.area}`).join('. ')}.`,
+  },
+  {
+    q: 'Do all Karnataka ESCOMs charge the same?',
+    a: `The ${state.regulator} sets tariffs for all of them, but some charges, such as the FY25 true-up, differ between companies. That is why each company gets its own data file and calculator here.`,
+  },
+];
+---
+
+<Base title={title} description={description} path={ROUTES.karnataka} crumbs={[CRUMB_HOME, CRUMB_KARNATAKA]} dataVerified={bescomVerified}>
+  <h1>Electricity bill calculator: Karnataka</h1>
+  <p class="lead">Pick the company named on your bill. BESCOM is live; the others are being added.</p>
+
+  <ul class="card-grid">
+    {
+      state.companies.map((c) =>
+        c.enabled ? (
+          <li>
+            <a class="card" href={ROUTES.bescomCalculator}>
+              <strong>{c.name} bill calculator →</strong>
+              <span>{c.fullName}. {c.area}.</span>
+            </a>
+          </li>
+        ) : (
+          <li class="card disabled">
+            <strong>{c.name} — coming soon</strong>
+            <span>{c.fullName}. {c.area}.</span>
+          </li>
+        ),
+      )
+    }
+  </ul>
+
+  <div class="prose">
+    <FAQ faqs={faqs} />
+    <RelatedLinks
+      links={[
+        { href: ROUTES.bescomCalculator, text: 'BESCOM bill calculator' },
+        { href: ROUTES.bescomRate, text: `BESCOM per unit rate ${fy}` },
+        { href: ROUTES.gruhaJyothi, text: 'Gruha Jyothi free units calculator' },
+        { href: ROUTES.fppca, text: 'FPPCA and true-up charges' },
+      ]}
+    />
+  </div>
+</Base>

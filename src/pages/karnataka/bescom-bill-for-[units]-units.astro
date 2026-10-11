@@ -1,0 +1,173 @@
+---
+import type { GetStaticPaths } from 'astro';
+import Base from '../../layouts/Base.astro';
+import BillBreakdown from '../../components/BillBreakdown.astro';
+import SourceBox from '../../components/SourceBox.astro';
+import FAQ from '../../components/FAQ.astro';
+import RelatedLinks from '../../components/RelatedLinks.astro';
+import { bescom, bescomFppca, bescomVerified } from '../../lib/data';
+import { bescomBill, bescomPerUnit, fppcaLatest } from '../../lib/examples';
+import { formatFY, formatINR, formatINR0, formatMonth, formatNumber } from '../../lib/format';
+import { CRUMB_HOME, CRUMB_KARNATAKA, ROUTES } from '../../site';
+
+export const getStaticPaths = (() =>
+  [...new Set(bescom.exampleUnits)].sort((a, b) => a - b).map((u) => ({ params: { units: String(u) } }))) satisfies GetStaticPaths;
+
+const t = bescom;
+const gj = t.gruhaJyothi;
+const fy = formatFY(t.financialYear);
+const all = [...new Set(t.exampleUnits)].sort((a, b) => a - b);
+const n = Number(Astro.params.units);
+const i = all.indexOf(n);
+const prevN = all[i - 1];
+const nextN = all[i + 1];
+
+const k1 = bescomBill(n);
+const k2 = bescomBill(n, { kw: 2 });
+const perUnit = k1.payable / n;
+const energyShare = (k1.lines.find((l) => l.key === 'energy')!.amount / k1.gross) * 100;
+const fixedShare = ((k1.lines.find((l) => l.key === 'fixed')!.amount) / k1.gross) * 100;
+const eligibleForGj = n <= gj.maxFreeUnits;
+const limits = [...new Set([50, 100, 150, gj.maxFreeUnits, ...(eligibleForGj ? [n] : [])])].sort((a, b) => a - b);
+const gjRows = limits.map((limit) => ({ limit, k1: bescomBill(n, { gjEligible: limit }), k2: bescomBill(n, { kw: 2, gjEligible: limit }) }));
+const neighbours = [prevN, nextN]
+  .filter((x): x is number => x !== undefined)
+  .map((m) => ({ units: m, bill: bescomBill(m) }));
+const atMax = eligibleForGj ? null : bescomBill(gj.maxFreeUnits);
+
+const path = ROUTES.bescomUnits(n);
+const title = `BESCOM Bill for ${n} Units (${fy}): ${formatINR0(k1.payable)}`;
+const description = `${n} units on BESCOM costs about ${formatINR0(k1.payable)} on 1 kW and ${formatINR0(k2.payable)} on 2 kW in ${fy}. Line-by-line breakdown, Gruha Jyothi impact and nearby usage levels.`;
+
+const faqs = [
+  {
+    q: `How much is the BESCOM bill for ${n} units?`,
+    a: `About ${formatINR0(k1.payable)} on a 1 kW connection and ${formatINR0(k2.payable)} on 2 kW, using ${formatMonth(fppcaLatest.month)} FPPCA and no true-up. That is ${formatINR(perUnit)} per unit, all charges included.`,
+  },
+  {
+    q: `Is ${n} units free under Gruha Jyothi?`,
+    a: eligibleForGj
+      ? `Only if your eligible limit is ${n} units or more. If your limit is lower, you pay for the extra units. For example, with a 100-unit limit you would pay about ${formatINR0(bescomBill(n, { gjEligible: 100 }).payable)}.`
+      : `No. ${n} units is over the ${gj.maxFreeUnits}-unit cap, so Gruha Jyothi does not apply and the full ${formatINR0(k1.payable)} is payable.`,
+  },
+  {
+    q: `How much more does each extra unit cost?`,
+    a: `About ${formatINR(bescomPerUnit)}: the ${formatINR(t.energyCharge.ratePerUnit)} energy charge plus P&G surcharge, FPPCA and tax. The fixed charge does not change with usage.`,
+  },
+];
+---
+
+<Base
+  title={title}
+  description={description}
+  path={path}
+  crumbs={[CRUMB_HOME, CRUMB_KARNATAKA, { name: 'BESCOM bill calculator', path: ROUTES.bescomCalculator }, { name: `${n} units`, path }]}
+  dataVerified={bescomVerified}
+>
+  <h1>BESCOM bill for {n} units</h1>
+  <p class="lead">
+    At {n} units on a 1 kW connection, the estimated {fy} bill is <strong>{formatINR0(k1.payable)}</strong>, or {formatINR(perUnit)} per unit
+    with all charges.
+  </p>
+
+  <div class="calculator">
+    <div class="card">
+      <p class="result-label">{n} units · 1 kW</p>
+      <p class="total">{formatINR0(k1.payable)}</p>
+      <p class="per-unit">{formatMonth(fppcaLatest.month)} FPPCA · no true-up · no Gruha Jyothi</p>
+      <BillBreakdown result={k1} caption={`BESCOM bill for ${n} units at 1 kW`} />
+    </div>
+    <div class="card">
+      <p class="result-label">{n} units · 2 kW</p>
+      <p class="total">{formatINR0(k2.payable)}</p>
+      <p class="per-unit">{formatINR0(k2.payable - k1.payable)} more than 1 kW, all from the fixed charge and its tax</p>
+      <BillBreakdown result={k2} caption={`BESCOM bill for ${n} units at 2 kW`} />
+      <p class="actions">
+        <a class="btn" href={`${ROUTES.bescomCalculator}?units=${n}`}>Open in calculator</a>
+        <a class="btn secondary" href={`${ROUTES.bescomCalculator}?units=${n}&kw=2`}>Try 2 kW</a>
+      </p>
+    </div>
+  </div>
+
+  <div class="prose">
+    <h2>Where the money goes</h2>
+    <p>
+      At {n} units, energy charges are {formatNumber(Math.round(energyShare))}% of the bill and the fixed charge is
+      {' '}{formatNumber(Math.round(fixedShare))}%. {n < 150 ? 'At low usage the fixed charge is a large share, which is why the per-unit cost looks high.' : 'At this level most of the bill depends on usage, so cutting units cuts the bill almost one-for-one.'}
+    </p>
+
+    <h2>With Gruha Jyothi</h2>
+    {
+      eligibleForGj ? (
+        <p>What you pay depends on your eligible limit (printed on your bill):</p>
+      ) : (
+        <p>
+          {n} units is above the {gj.maxFreeUnits}-unit cap, so the scheme does not apply and the bill stays {formatINR0(k1.payable)}. For
+          comparison, {gj.maxFreeUnits} units costs {formatINR0(atMax!.payable)} without the scheme and ₹0 if it is within your eligible limit.
+        </p>
+      )
+    }
+    {
+      eligibleForGj && (
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th scope="col">Your eligible limit</th><th scope="col" class="num">You pay (1 kW)</th><th scope="col" class="num">You pay (2 kW)</th></tr></thead>
+            <tbody>
+              {
+                gjRows.map((r) => (
+                  <tr class={r.limit === n ? 'current' : undefined}>
+                    <th scope="row">{r.limit} units</th>
+                    <td class="num">{formatINR0(r.k1.payable)}</td>
+                    <td class="num">{formatINR0(r.k2.payable)}</td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+
+    <h2>Compared with nearby usage</h2>
+    <ul>
+      {
+        neighbours.map(({ units, bill }) => (
+          <li>
+            <a href={ROUTES.bescomUnits(units)}>{units} units</a>: {formatINR0(bill.payable)} ({units > n ? '+' : '−'}{formatINR0(Math.abs(bill.payable - k1.payable))} for{' '}
+            {Math.abs(units - n)} {units > n ? 'more' : 'fewer'} units)
+          </li>
+        ))
+      }
+    </ul>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th scope="col">Units</th><th scope="col" class="num">1 kW bill</th><th scope="col" class="num">Per unit</th></tr></thead>
+        <tbody>
+          {
+            all.map((u) => {
+              const b = u === n ? k1 : bescomBill(u);
+              return (
+                <tr class={u === n ? 'current' : undefined}>
+                  <th scope="row">{u === n ? <span aria-current="page">{u} units</span> : <a href={ROUTES.bescomUnits(u)}>{u} units</a>}</th>
+                  <td class="num">{formatINR0(b.payable)}</td>
+                  <td class="num">{formatINR(b.payable / u)}</td>
+                </tr>
+              );
+            })
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <FAQ faqs={faqs} />
+    <SourceBox tariff={t} fppca={bescomFppca} />
+    <RelatedLinks
+      links={[
+        { href: ROUTES.bescomCalculator, text: 'BESCOM bill calculator', note: 'enter your exact units' },
+        { href: ROUTES.bescomRate, text: `BESCOM per unit rate ${fy}` },
+        ...neighbours.map((x) => ({ href: ROUTES.bescomUnits(x.units), text: `BESCOM bill for ${x.units} units` })),
+        { href: ROUTES.gruhaJyothi, text: 'Gruha Jyothi free units calculator' },
+      ]}
+    />
+  </div>
+</Base>

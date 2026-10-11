@@ -1,0 +1,93 @@
+---
+import Base from '../layouts/Base.astro';
+import FAQ from '../components/FAQ.astro';
+import { bescom, bescomVerified, companies } from '../lib/data';
+import { bescomBill, bescomPerUnit } from '../lib/examples';
+import { formatFY, formatINR, formatINR0 } from '../lib/format';
+import { webAppLd } from '../lib/seo';
+import { CRUMB_HOME, ROUTES, SITE } from '../site';
+
+const fy = formatFY(bescom.financialYear);
+const title = `Electricity Bill Calculator India: Accurate & Explained | ${SITE.name}`;
+const description = `Free electricity bill calculator for Indian homes. Every line of your bill explained, using the latest official tariff with sources. Starting with BESCOM (Bengaluru), ${fy}.`;
+const popular = [100, 200, 300].filter((u) => bescom.exampleUnits.includes(u)).map((u) => ({ units: u, bill: bescomBill(u) }));
+const faqs = [
+  {
+    q: 'Which electricity companies does this calculator cover?',
+    a: `Right now, BESCOM (Bengaluru and nearby districts) for homes, ${fy}. More Karnataka companies and other states will be added, each checked against its regulator's tariff order.`,
+  },
+  {
+    q: 'Why are other calculators showing a different amount?',
+    a: `Many still use the old slab rates. Since the current tariff, BESCOM charges homes a flat ${formatINR(bescom.energyCharge.ratePerUnit)} per unit, plus a fixed charge, FPPCA, surcharge, tax and a temporary true-up charge. We show every line and its source.`,
+  },
+  {
+    q: 'Do I need to sign up?',
+    a: 'No. There are no accounts, no ads and no cookies. Your inputs stay in your browser and in the link you choose to share.',
+  },
+];
+---
+
+<Base
+  title={title}
+  description={description}
+  path={ROUTES.home}
+  crumbs={[CRUMB_HOME]}
+  jsonLd={[webAppLd(SITE.name, description, ROUTES.home, Astro.site)]}
+  dataVerified={bescomVerified}
+>
+  <h1>Electricity bill calculator for Indian homes</h1>
+  <p class="lead">
+    Find out what your bill will be, and why. Every charge is shown line by line, with the official source and date.
+  </p>
+
+  <h2>Choose your electricity company</h2>
+  {
+    companies.states.map((s) => (
+      <section aria-label={s.name}>
+        <h3>
+          <a href={`/${s.slug}/`}>{s.name}</a>
+        </h3>
+        <ul class="card-grid">
+          {s.companies.map((c) =>
+            c.enabled ? (
+              <li>
+                <a class="card" href={ROUTES.bescomCalculator}>
+                  <strong>{c.name} bill calculator →</strong>
+                  <span>{c.area}</span>
+                </a>
+              </li>
+            ) : (
+              <li class="card disabled">
+                <strong>{c.name}</strong>
+                <span>Coming soon</span>
+              </li>
+            ),
+          )}
+        </ul>
+      </section>
+    ))
+  }
+
+  <div class="prose">
+    <h2>Popular BESCOM estimates</h2>
+    <ul>
+      {
+        popular.map((p) => (
+          <li>
+            <a href={ROUTES.bescomUnits(p.units)}>{p.units} units</a>: about {formatINR0(p.bill.payable)} a month on 1 kW
+          </li>
+        ))
+      }
+      <li>Each extra unit costs about {formatINR(bescomPerUnit)} with all charges. <a href={ROUTES.bescomRate}>See every rate</a></li>
+    </ul>
+
+    <h2>Why this calculator</h2>
+    <ul>
+      <li><strong>Current tariff, with sources.</strong> Rates come from a dated data file, shown on every page.</li>
+      <li><strong>Every line explained.</strong> Fixed charge, energy, FPPCA, surcharge, tax, true-up and Gruha Jyothi.</li>
+      <li><strong>Fast on any phone.</strong> No signup, no ads, no pop-ups.</li>
+    </ul>
+
+    <FAQ faqs={faqs} />
+  </div>
+</Base>

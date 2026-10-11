@@ -1,0 +1,115 @@
+---
+import Base from '../../layouts/Base.astro';
+import BillBreakdown from '../../components/BillBreakdown.astro';
+import SourceBox from '../../components/SourceBox.astro';
+import FAQ from '../../components/FAQ.astro';
+import RelatedLinks from '../../components/RelatedLinks.astro';
+import { bescom, bescomFppca, bescomVerified } from '../../lib/data';
+import { bescomBill, fppcaLatest } from '../../lib/examples';
+import { formatINR, formatINR0, formatMonth, formatNumber } from '../../lib/format';
+import { CRUMB_HOME, CRUMB_KARNATAKA, ROUTES } from '../../site';
+
+const t = bescom;
+const path = ROUTES.howToRead;
+const title = 'How to Read Your BESCOM Bill: Every Line Explained';
+const description = `What each line on a BESCOM electricity bill means: readings, units, sanctioned load, fixed and energy charges, FPPCA, tax, P&G surcharge, ${t.trueUp.label} and Gruha Jyothi.`;
+const prev = 4210;
+const curr = 4390;
+const sample = bescomBill(curr - prev, { kw: 2 });
+const amount = (key: string) => formatINR(sample.lines.find((l) => l.key === key)?.amount ?? 0);
+
+const sections = [
+  {
+    title: 'Account and connection details',
+    items: [
+      ['Account ID / RR number', 'Identifies your connection. You need it to pay online or raise a complaint.'],
+      ['Tariff', 'Your category. Homes are on the domestic tariff; this site covers that category only.'],
+      ['Sanctioned load (kW)', `The connection size approved for your home. The fixed charge is ${formatINR(t.fixedCharge.perKwPerMonth)} for every kW, every month.`],
+    ],
+  },
+  {
+    title: 'Meter readings and units',
+    items: [
+      ['Previous reading', 'The meter reading at the last bill.'],
+      ['Present reading', 'The meter reading this time.'],
+      ['Consumption / units', `Present minus previous reading. In the example below: ${formatNumber(curr)} − ${formatNumber(prev)} = ${formatNumber(curr - prev)} units.`],
+    ],
+  },
+  {
+    title: 'Charges',
+    items: [
+      ['Fixed charges', `Sanctioned load × ${formatINR(t.fixedCharge.perKwPerMonth)}. Example (2 kW): ${amount('fixed')}.`],
+      ['Energy charges', `Units × ${formatINR(t.energyCharge.ratePerUnit)}, one flat rate. Example: ${amount('energy')}.`],
+      ['FPPCA', `Units × this month's fuel cost adjustment (${formatNumber(fppcaLatest.paise)} paise in ${formatMonth(fppcaLatest.month)}). Example: ${amount('fppca')}.`],
+      ['P&G surcharge', `Pension & gratuity surcharge, units × ${formatINR(t.pensionGratuitySurcharge.ratePerUnit)}. Example: ${amount('pgSurcharge')}.`],
+      ['Tax', `Electricity tax at ${formatNumber(t.electricityTax.percent)}%. Example: ${amount('tax')}.`],
+      [t.trueUp.label, `A temporary, home-specific charge from ${formatMonth(t.trueUp.activeFrom)} to ${formatMonth(t.trueUp.activeTo)}. Not included in the example.`],
+    ],
+  },
+  {
+    title: 'Subsidy and amount due',
+    items: [
+      ['Gruha Jyothi / subsidy', `If you are enrolled and within your eligible units (up to ${t.gruhaJyothi.maxFreeUnits}), the government pays the covered charges and this line cancels them out.`],
+      ['Arrears and interest', 'Unpaid amounts from earlier bills, plus any interest. The calculator does not include these.'],
+      ['Net amount / amount payable', 'What you need to pay, rounded to the rupee, by the due date.'],
+    ],
+  },
+];
+
+const faqs = [
+  {
+    q: 'Where do I find my units on a BESCOM bill?',
+    a: 'Look for "Consumption" or "Units". It is the present reading minus the previous reading.',
+  },
+  {
+    q: 'Why does my bill have a fixed charge when I used very little?',
+    a: `The fixed charge pays for your connection, not your usage. It is ${formatINR(t.fixedCharge.perKwPerMonth)} per kW of sanctioned load each month, even at zero units.`,
+  },
+  {
+    q: 'My bill shows arrears. Is that included in the calculator?',
+    a: 'No. The calculator estimates one month of charges. Add any arrears or interest shown on your bill separately.',
+  },
+];
+---
+
+<Base title={title} description={description} path={path} crumbs={[CRUMB_HOME, CRUMB_KARNATAKA, { name: 'How to read your bill', path }]} dataVerified={bescomVerified}>
+  <h1>How to read your BESCOM bill</h1>
+  <p class="lead">
+    Every line on the bill, in plain language, with a worked example: {formatNumber(curr - prev)} units on a 2 kW connection comes to{' '}
+    <strong>{formatINR0(sample.payable)}</strong>.
+  </p>
+
+  <div class="card">
+    <BillBreakdown result={sample} caption={`Example bill: ${curr - prev} units, 2 kW`} />
+  </div>
+  <p class="actions"><a class="btn" href={ROUTES.bescomCalculator}>Check my own bill</a></p>
+
+  <div class="prose">
+    {
+      sections.map((s) => (
+        <section>
+          <h2>{s.title}</h2>
+          <dl>
+            {s.items.map(([term, desc]) => (
+              <>
+                <dt><strong>{term}</strong></dt>
+                <dd>{desc}</dd>
+              </>
+            ))}
+          </dl>
+        </section>
+      ))
+    }
+    <p class="hint">Labels on the printed bill can vary slightly between bill formats. An annotated sample bill image will be added here.</p>
+
+    <FAQ faqs={faqs} />
+    <SourceBox tariff={t} fppca={bescomFppca} />
+    <RelatedLinks
+      links={[
+        { href: ROUTES.fppca, text: 'FPPCA and the FY25 true-up charge explained' },
+        { href: ROUTES.gruhaJyothi, text: 'Gruha Jyothi free units calculator' },
+        { href: ROUTES.bescomRate, text: 'BESCOM per unit rate' },
+      ]}
+    />
+  </div>
+</Base>
