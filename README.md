@@ -1,4 +1,6 @@
-# Current Bill Calculator
+# BillSaar
+
+Live: https://www.billsaar.workers.dev
 
 A fast, no-signup, mobile-first static site that calculates and explains Indian household electricity bills, starting with
 BESCOM (Bengaluru), FY2026-27. Built with Astro and TypeScript. There is no backend. Rates live in JSON files, so you

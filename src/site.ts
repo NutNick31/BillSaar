@@ -1,7 +1,7 @@
 // Site-wide settings. Change the name or contact here; the production URL lives in astro.config.mjs.
 export const SITE = {
-  name: 'Current Bill Calculator',
-  shortName: 'CurrentBill',
+  name: 'BillSaar',
+  shortName: 'BillSaar',
   /** TODO: set a contact address before launch (shown on /about/). Leave empty to hide it. */
   contactEmail: '',
   ogImage: '/og.png',
